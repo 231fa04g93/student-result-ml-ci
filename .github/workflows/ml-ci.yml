@@ -17,6 +17,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      
+      - name: Prepare release candidate
+        run: |
+          mkdir -p release_candidate
+          cp app.py release_candidate/
+          cp train_model.py release_candidate/
+          cp quality_gate.py release_candidate/
+          cp requirements.txt release_candidate/
+          cp metrics.json release_candidate/
+          cp student_result_model.pkl release_candidate/
+          cat > release_candidate/DEPLOYMENT.txt << 'EOF'
+          Student Result ML Prediction Application
+          Run the application with: python app.py
+          EOF
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-result-ml-release
+          path: release_candidate/
+
       - name: Checkout repository
         uses: actions/checkout@v7
 
