@@ -13,7 +13,13 @@ class TestPredictionApplication(unittest.TestCase):
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json()["status"], "ok")
+
+        data = response.get_json()
+        self.assertEqual(data["status"], "ok")
+        self.assertEqual(
+            data["service"],
+            "student-result-prediction"
+        )
 
     def test_high_performance_prediction(self):
         response = self.client.post(
@@ -27,10 +33,10 @@ class TestPredictionApplication(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.get_json()["prediction"],
-            "PASS"
-        )
+
+        data = response.get_json()
+        self.assertEqual(data["prediction"], "PASS")
+        self.assertEqual(data["prediction_code"], 1)
 
     def test_low_performance_prediction(self):
         response = self.client.post(
@@ -44,10 +50,10 @@ class TestPredictionApplication(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.get_json()["prediction"],
-            "FAIL"
-        )
+
+        data = response.get_json()
+        self.assertEqual(data["prediction"], "FAIL")
+        self.assertEqual(data["prediction_code"], 0)
 
     def test_missing_field_validation(self):
         response = self.client.post(
@@ -59,10 +65,9 @@ class TestPredictionApplication(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn(
-            "missing_fields",
-            response.get_json()
-        )
+
+        data = response.get_json()
+        self.assertIn("missing_fields", data)
 
 
 if __name__ == "__main__":
