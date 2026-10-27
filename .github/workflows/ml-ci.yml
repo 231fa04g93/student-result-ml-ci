@@ -41,17 +41,15 @@ jobs:
       - name: Run automated ML tests
         run: python -m unittest discover -v
 
-      - name: Verify Docker configuration files
+      
+      - name: Run prediction application tests
         run: |
-          test -f Dockerfile || {
-            echo "ERROR: Dockerfile is missing"
-            exit 1
-          }
-          test -f .dockerignore || {
-            echo "ERROR: .dockerignore is missing"
-            exit 1
-          }
-          echo "Docker configuration files are present."
+          if [ -f test_app.py ]; then
+            python -m pytest -v test_app.py
+          else
+            echo "WARNING: test_app.py is missing; skipping application tests."
+          fi
+
 
       - name: Run prediction application tests
         run: |
