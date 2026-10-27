@@ -49,18 +49,32 @@ jobs:
             echo "test_app.py not found; skipping application tests"
           fi
 
+      - name: Verify Docker configuration files
+        run: |
+          test -f Dockerfile || { echo "ERROR: Dockerfile is missing from repository root"; exit 1; }
+          test -f .dockerignore || { echo "ERROR: .dockerignore is missing from repository root"; exit 1; }
+          echo "Dockerfile and .dockerignore are present."
+          ls -la Dockerfile .dockerignore
+
       - name: Prepare release candidate
         run: |
           mkdir -p release_candidate
+
           cp app.py release_candidate/
           cp student_result_model.pkl release_candidate/
           cp metrics.json release_candidate/
           cp requirements.txt release_candidate/
           cp Dockerfile release_candidate/
           cp .dockerignore release_candidate/
+
           printf "Student Result Prediction ML Application\nRun: python app.py\nEndpoint: POST /predict\n" > release_candidate/DEPLOYMENT.txt
+
           echo "Release candidate files:"
           ls -la release_candidate/
+
+          test -f release_candidate/.dockerignore
+          test -f release_candidate/Dockerfile
+          test "$(find release_candidate -maxdepth 1 -type f | wc -l)" -eq 7
 
       - name: Upload release candidate
         uses: actions/upload-artifact@v4
