@@ -97,3 +97,13 @@ jobs:
 
           echo "Prediction response: $response"
           echo "$response" | grep -q '"prediction"'
+
+      # Step 8: Show Docker container logs
+      - name: Show Docker container logs
+        if: always()
+        run: docker logs student-result-ml-container || true
+
+      # Step 8: Stop and remove Docker container
+      - name: Stop and remove Docker container
+        if: always()
+        run: docker rm -f student-result-ml-container || true
