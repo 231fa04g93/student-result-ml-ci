@@ -56,11 +56,11 @@ jobs:
       - name: Run prediction application tests
         run: python -m unittest test_app.py -v
 
-      # Practical-7 Step 4: Build Docker image
+      # Step 4: Build Docker image
       - name: Build Docker image
         run: docker build -t student-result-ml:${{ github.sha }} .
 
-      # Practical-7 Step 5: Start Docker container
+      # Step 5: Start Docker container
       - name: Start Docker container
         run: |
           docker run -d \
@@ -68,7 +68,7 @@ jobs:
             -p 5000:5000 \
             student-result-ml:${{ github.sha }}
 
-      # Practical-7 Step 6: Wait for application to become ready
+      # Step 6: Wait for application to become ready
       - name: Wait for application to become ready
         run: |
           set -e
@@ -84,3 +84,16 @@ jobs:
           echo "Application did not become ready."
           docker logs student-result-ml-container
           exit 1
+
+      # Step 7: Test prediction endpoint
+      - name: Test prediction endpoint
+        run: |
+          set -e
+          response=$(curl --fail --silent --show-error \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"attendance":90,"internal_marks":85,"assignment_marks":88,"previous_score":80}' \
+            http://localhost:5000/predict)
+
+          echo "Prediction response: $response"
+          echo "$response" | grep -q '"prediction"'
