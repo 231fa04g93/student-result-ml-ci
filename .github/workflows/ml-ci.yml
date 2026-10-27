@@ -49,7 +49,6 @@ jobs:
             echo "test_app.py not found; skipping application tests"
           fi
 
-      
       - name: Prepare release candidate
         run: |
           mkdir -p release_candidate
@@ -60,9 +59,10 @@ jobs:
           cp Dockerfile release_candidate/
           cp .dockerignore release_candidate/
           printf "Student Result Prediction ML Application\nRun: python app.py\nEndpoint: POST /predict\n" > release_candidate/DEPLOYMENT.txt
+          echo "Release candidate files:"
+          ls -la release_candidate/
 
-
-      - name: Upload release artifact
+      - name: Upload release candidate
         uses: actions/upload-artifact@v4
         with:
           name: student-result-ml-release
