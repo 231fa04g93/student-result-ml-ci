@@ -67,7 +67,7 @@ class TestPredictionApplication(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
 
         data = response.get_json()
-        self.assertIn("missing_fields", data)
+        self.assertIn("missing_features", data)
 
 
 if __name__ == "__main__":
