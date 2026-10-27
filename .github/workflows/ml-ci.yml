@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  train-and-test:
+  train-test-containerize:
     runs-on: ubuntu-latest
 
     steps:
@@ -41,23 +41,78 @@ jobs:
       - name: Run automated ML tests
         run: python -m unittest discover -v
 
+      - name: Verify Docker configuration files
+        run: |
+          test -f Dockerfile || {
+            echo "ERROR: Dockerfile is missing"
+            exit 1
+          }
+          test -f .dockerignore || {
+            echo "ERROR: .dockerignore is missing"
+            exit 1
+          }
+          echo "Docker configuration files are present."
+
       - name: Run prediction application tests
         run: |
           if [ -f test_app.py ]; then
             python -m pytest -v test_app.py
           else
-            echo "test_app.py not found; skipping application tests"
+            echo "ERROR: test_app.py is missing"
+            exit 1
           fi
 
-      - name: Verify Docker configuration files
+      - name: Build Docker image
+        run: docker build -t student-result-ml:${{ github.sha }} .
+
+      - name: Start Docker container
         run: |
-          test -f Dockerfile || { echo "ERROR: Dockerfile is missing from repository root"; exit 1; }
-          test -f .dockerignore || { echo "ERROR: .dockerignore is missing from repository root"; exit 1; }
-          echo "Dockerfile and .dockerignore are present."
-          ls -la Dockerfile .dockerignore
+          docker run -d \
+            --name student-result-ml-container \
+            -p 5000:5000 \
+            student-result-ml:${{ github.sha }}
+
+      - name: Wait for application to become ready
+        run: |
+          for i in {1..15}; do
+            if curl --fail --silent --show-error \
+              http://localhost:5000/health; then
+              echo "Application is ready."
+              exit 0
+            fi
+
+            echo "Waiting for application... attempt $i"
+            sleep 2
+          done
+
+          echo "Application did not become ready."
+          docker logs student-result-ml-container
+          exit 1
+
+      - name: Test prediction endpoint
+        run: |
+          response=$(curl --fail --silent --show-error \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"attendance":90,"internal_marks":85,"assignment_marks":88,"previous_score":80}' \
+            http://localhost:5000/predict)
+
+          echo "Prediction response: $response"
+
+          echo "$response" | python -c \
+            'import json,sys; d=json.load(sys.stdin); assert "prediction" in d, "Missing prediction field"; print("Prediction response validated.")'
+
+      - name: Show Docker container logs
+        if: always()
+        run: docker logs student-result-ml-container || true
+
+      - name: Stop and remove Docker container
+        if: always()
+        run: docker rm -f student-result-ml-container || true
 
       - name: Prepare release candidate
         run: |
+          set -e
           mkdir -p release_candidate
 
           cp app.py release_candidate/
@@ -67,7 +122,8 @@ jobs:
           cp Dockerfile release_candidate/
           cp .dockerignore release_candidate/
 
-          printf "Student Result Prediction ML Application\nRun: python app.py\nEndpoint: POST /predict\n" > release_candidate/DEPLOYMENT.txt
+          printf "Student Result Prediction ML Application\nRun: python app.py\nEndpoint: POST /predict\n" \
+            > release_candidate/DEPLOYMENT.txt
 
           echo "Release candidate files:"
           ls -la release_candidate/
@@ -76,7 +132,6 @@ jobs:
           test -f release_candidate/Dockerfile
           test "$(find release_candidate -maxdepth 1 -type f | wc -l)" -eq 7
 
-      
       - name: Upload release candidate
         uses: actions/upload-artifact@v4
         with:
