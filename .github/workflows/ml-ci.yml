@@ -1,6 +1,4 @@
-
 name: Student Result ML CI
-
 on:
   push:
     branches:
